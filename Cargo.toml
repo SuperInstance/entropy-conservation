@@ -1,0 +1,15 @@
+[package]
+name = "entropy-conservation"
+version = "0.1.0"
+edition = "2024"
+description = "Conservation of Verification Entropy — a mathematical framework for the meta-law discovered across PLATO/SuperInstance experiments"
+license = "MIT"
+repository = "https://github.com/SuperInstance/entropy-conservation"
+keywords = ["entropy", "verification", "conservation-law", "hodge-theory", "persistent-homology"]
+categories = ["mathematics", "science", "development-tools::testing"]
+
+[dependencies]
+ndarray = "0.16"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
