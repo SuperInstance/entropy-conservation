@@ -1,57 +1,54 @@
 //! Tutorial: Entropy conservation in agent systems
 //!
-//! Shows Shannon/Rényi/Tsallis entropy, KL divergence, conservation checking,
-//! and entropy flow networks.
+//! Shows VerificationEntropy, conservation checking, entropy flow networks.
+
+use entropy_conservation::entropy::{VerificationEntropy, shannon_entropy, kl_divergence};
+use entropy_conservation::conservation::ConservationReport;
+use entropy_conservation::flow::{EntropyFlow, FlowNetwork};
 
 fn main() {
     println!("=== Entropy Conservation Tutorial ===\n");
 
     // Part 1: Shannon entropy of agent distributions
     println!("Part 1: Measuring agent decision entropy");
-    let fair_agent = vec![0.25, 0.25, 0.25, 0.25]; // equally distributed
-    let biased_agent = vec![0.7, 0.1, 0.1, 0.1];   // favors option A
+    let fair = vec![0.25, 0.25, 0.25, 0.25];
+    let biased = vec![0.7, 0.1, 0.1, 0.1];
     
-    let h_fair = entropy_conservation::shannon_entropy(&fair_agent);
-    let h_biased = entropy_conservation::shannon_entropy(&biased_agent);
-    println!("  Fair agent entropy:  {:.3} bits (max: {:.3})", h_fair, entropy_conservation::max_shannon(4));
-    println!("  Biased agent entropy: {:.3} bits", h_biased);
+    println!("  Fair agent:  H = {:.3} bits (max: {:.3})", shannon_entropy(&fair), VerificationEntropy::max_shannon(4));
+    println!("  Biased agent: H = {:.3} bits", shannon_entropy(&biased));
     println!();
 
-    // Part 2: KL divergence — how different are two agents?
-    println!("Part 2: KL divergence between agent policies");
-    let kl = entropy_conservation::kl_divergence(&biased_agent, &fair_agent);
-    let js = entropy_conservation::js_divergence(&biased_agent, &fair_agent);
-    println!("  KL(biased || fair): {:.4}", kl);
-    println!("  JS(biased, fair):   {:.4} (symmetric)", js);
+    // Part 2: VerificationEntropy from probabilities
+    println!("Part 2: VerificationEntropy");
+    let ve = VerificationEntropy::from_probabilities(&fair).unwrap();
+    println!("  Normalised: {:.3}", ve.normalised());
+    let ve_counts = VerificationEntropy::from_counts(&[100, 50, 30, 20]).unwrap();
+    println!("  From counts [100,50,30,20]: normalised = {:.3}", ve_counts.normalised());
     println!();
 
-    // Part 3: Rényi entropy (generalized family)
-    println!("Part 3: Rényi entropy family");
-    for alpha in [0.5, 1.0, 2.0, 5.0, 100.0] {
-        if let Ok(h) = entropy_conservation::renyi_entropy(&fair_agent, alpha) {
-            println!("  H_{:.1}(fair) = {:.3}", alpha, h);
-        }
-    }
+    // Part 3: KL divergence between policies
+    println!("Part 3: KL divergence");
+    println!("  KL(biased || fair) = {:.4}", kl_divergence(&biased, &fair));
     println!();
 
-    // Part 4: Tsallis entropy (non-extensive)
-    println!("Part 4: Tsallis entropy (non-extensive)");
-    for q in [0.5, 1.5, 2.0] {
-        let s = entropy_conservation::tsallis_entropy(&fair_agent, q);
-        println!("  S_q={:.1}(fair) = {:.3}", q, s);
-    }
+    // Part 4: Conservation check via snapshots
+    println!("Part 4: Conservation report");
+    let ve_before = VerificationEntropy::from_probabilities(&fair).unwrap();
+    let ve_after = VerificationEntropy::from_probabilities(&vec![0.24, 0.26, 0.25, 0.25]).unwrap();
+    let report = ConservationReport::from_snapshots(&[ve_before, ve_after]);
+    println!("  Conserved: {}", report.is_conserved());
+    println!("  Total violation: {:.6}", report.total_violation());
     println!();
 
-    // Part 5: Conservation check — before/after agent operation
-    println!("Part 5: Conservation check");
-    let before = vec![0.25, 0.25, 0.25, 0.25];
-    let after  = vec![0.24, 0.26, 0.25, 0.25]; // small perturbation
-    
-    match entropy_conservation::check_conservation(&before, &after) {
-        Ok(report) => {
-            println!("  Conserved: {}", report.is_conserved());
-            println!("  Total violation: {:.6}", report.total_violation());
-        }
-        Err(e) => println!("  Error: {}", e),
-    }
+    // Part 5: Entropy flow network
+    println!("Part 5: Entropy flow network");
+    let flows = vec![
+        EntropyFlow { source: "parser".into(), sink: "optimizer".into(), rate: 0.3 },
+        EntropyFlow { source: "optimizer".into(), sink: "codegen".into(), rate: 0.25 },
+        EntropyFlow { source: "codegen".into(), sink: "parser".into(), rate: 0.25 },
+    ];
+    let network = FlowNetwork::new(flows);
+    let (conserved, leakage) = network.check_conservation();
+    println!("  Network conserved: {}", conserved);
+    println!("  Leakage: {:.4}", leakage);
 }
