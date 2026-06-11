@@ -1,6 +1,6 @@
 [package]
 name = "entropy-conservation"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Conservation of Verification Entropy — a mathematical framework for the meta-law discovered across PLATO/SuperInstance experiments"
 license = "MIT"
